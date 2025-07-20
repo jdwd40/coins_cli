@@ -1,7 +1,9 @@
 const inquirer = require('inquirer');
 const chalk = require('chalk');
+const Table = require('cli-table3');
 const display = require('../utils/display');
 const api = require('../services/api');
+const authMiddleware = require('../services/authMiddleware');
 const authCommands = require('./auth');
 const marketCommands = require('./market');
 const portfolioCommands = require('./portfolio');
@@ -13,23 +15,60 @@ const interactiveCommands = {
   async start() {
     display.header('Coins CLI - Interactive Mode');
     
-    // Show user info prominently at the top
-    await this.displayUserInfo();
+    // Check if user is logged in first - before showing any user info
+    let user = authCommands.getCurrentUser();
+    if (!user || !user.userId) {
+      display.warning('You need to log in first to use the dashboard.');
+      const { shouldLogin } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'shouldLogin',
+          message: 'Would you like to log in now?',
+          default: true
+        }
+      ]);
+      
+      if (shouldLogin) {
+        await authCommands.login();
+        user = authCommands.getCurrentUser(); // Get updated user after login
+      } else {
+        display.info('Goodbye!');
+        return;
+      }
+    }
     
     while (true) {
+      // Get current user status to update menu choices
+      const currentUser = authCommands.getCurrentUser();
+      const isLoggedIn = !!(currentUser && currentUser.userId);
+      
+      // Only show user info if logged in
+      if (isLoggedIn) {
+        await this.displayUserInfo();
+      }
+      
+      const menuChoices = [
+        { name: '📊 Market Data', value: 'market' },
+        { name: '💼 Portfolio', value: 'portfolio' },
+        { name: '💰 Trading', value: 'trading' },
+        { name: '📈 Transaction History', value: 'transactions' },
+        { name: '👤 Account Settings', value: 'account' }
+      ];
+      
+      // Add logout option only if user is logged in
+      if (isLoggedIn) {
+        menuChoices.push({ name: '🚪 Logout', value: 'logout' });
+      }
+      
+      // Add exit option at the end
+      menuChoices.push({ name: '❌ Exit', value: 'exit' });
+      
       const { action } = await inquirer.prompt([
         {
           type: 'list',
           name: 'action',
           message: 'What would you like to do?',
-          choices: [
-            { name: '📊 Market Data', value: 'market' },
-            { name: '💼 Portfolio', value: 'portfolio' },
-            { name: '💰 Trading', value: 'trading' },
-            { name: '📈 Transaction History', value: 'transactions' },
-            { name: '👤 Account Settings', value: 'account' },
-            { name: '❌ Exit', value: 'exit' }
-          ]
+          choices: menuChoices
         }
       ]);
 
@@ -40,8 +79,6 @@ const interactiveCommands = {
 
       try {
         await this.handleAction(action);
-        // Refresh user info after each action
-        await this.displayUserInfo();
       } catch (error) {
         display.error('An error occurred');
         if (process.argv.includes('--debug')) {
@@ -78,11 +115,8 @@ const interactiveCommands = {
       }
       
       console.log(chalk.cyan.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
-    } else {
-      console.log(chalk.yellow.bold('⚠️  Not logged in. Please login first.'));
-      console.log(chalk.cyan.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+      console.log('');
     }
-    console.log('');
   },
 
   // Handle main menu actions
@@ -109,6 +143,10 @@ const interactiveCommands = {
         await this.showAccountMenu();
         needsPause = true;
         break;
+      case 'logout':
+        await authCommands.logout();
+        display.success('Logged out successfully');
+        return; // Don't pause after logout
     }
     
     // Only pause after data display actions
@@ -467,37 +505,63 @@ const interactiveCommands = {
 
   // Sell submenu with coin list and 'q' to quit
   async showSellMenu() {
-    // First, show the list of available coins
-    display.header('Available Coins for Sale');
+    // First, show the user's portfolio with coin IDs and current amounts
+    display.header('Your Portfolio - Available for Sale');
     
     try {
-      const spinner = display.spinner('Fetching available coins...');
-      const response = await api.getCoins();
-      spinner.succeed('Coins loaded');
+      const user = authMiddleware.requireAuth();
+      const spinner = display.spinner('Fetching your portfolio...');
+      const response = await api.getPortfolio(user.userId);
+      spinner.succeed('Portfolio loaded');
       
-      const table = display.createCoinTable();
+      const portfolio = response.data.portfolio;
+      const userFunds = response.data.user_funds || 0;
       
-      // Handle the coins wrapper object in the response
-      const coins = response.data.coins || response.data;
+      if (!portfolio || portfolio.length === 0) {
+        display.info('Your portfolio is empty - nothing to sell');
+        display.info(`Available funds: ${display.formatCurrency(userFunds)}`);
+        return;
+      }
+
+      // Create a table specifically for selling with coin IDs and amounts
+      const table = new Table({
+        head: [
+          display.colors.bold('Coin ID'),
+          display.colors.bold('Name'),
+          display.colors.bold('Symbol'),
+          display.colors.bold('Current Amount'),
+          display.colors.bold('Current Price'),
+          display.colors.bold('Total Value'),
+          display.colors.bold('P&L')
+        ],
+        colWidths: [8, 20, 8, 15, 12, 12, 12]
+      });
       
-      coins.forEach(coin => {
+      portfolio.forEach(holding => {
+        const currentValue = parseFloat(holding.total_amount) * parseFloat(holding.current_price);
+        const totalInvested = parseFloat(holding.total_invested);
+        const profitLoss = currentValue - totalInvested;
+        
         table.push([
-          coin.coin_id,
-          coin.name,
-          coin.symbol,
-          display.formatCurrency(coin.current_price),
-          display.formatCurrency(coin.market_cap),
-          display.formatPercentage(coin.price_change_24h)
+          holding.coin_id,
+          holding.name,
+          holding.symbol,
+          holding.total_amount,
+          display.formatCurrency(holding.current_price),
+          display.formatCurrency(currentValue),
+          profitLoss >= 0 
+            ? display.profit(display.formatCurrency(profitLoss))
+            : display.loss(display.formatCurrency(Math.abs(profitLoss)))
         ]);
       });
       
       console.log(table.toString());
-      display.info(`Showing ${coins.length} coins`);
+      display.info(`Showing ${portfolio.length} coins in your portfolio`);
       display.info(chalk.yellow('Type "q" at any time to return to main menu'));
       console.log('');
       
     } catch (error) {
-      display.error('Failed to fetch market data');
+      display.error('Failed to fetch portfolio data');
       if (process.argv.includes('--debug')) {
         console.error(error);
       }
@@ -509,7 +573,7 @@ const interactiveCommands = {
       {
         type: 'input',
         name: 'coinId',
-        message: 'Enter coin ID (or "q" to quit):',
+        message: 'Enter coin ID from your portfolio (or "q" to quit):',
         validate: (input) => {
           if (input.toLowerCase() === 'q') return true;
           return input.trim() ? true : 'Coin ID is required';

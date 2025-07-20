@@ -31,6 +31,7 @@ const authCommands = {
           if (!emailRegex.test(input)) {
             return 'Please enter a valid email address';
           }
+          return true;
         }
       },
       {

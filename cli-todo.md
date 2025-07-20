@@ -153,11 +153,15 @@
   - Filter by date range
 
 ## **Phase 6: User Experience & Interface**
-- [ ] **6.1** Create interactive menu system
+- [x] **6.1** Create interactive menu system
   - Command: `coins-cli interactive`
   - Main menu with numbered options
   - Sub-menus for different categories
   - Easy navigation between features
+  - Enhanced sell menu shows portfolio with coin IDs before asking for input
+  - Login prompt when starting dashboard without authentication
+  - Logout option in main menu when logged in
+  - Exit option keeps user logged in
 - [ ] **6.2** Add colorful output
   - Use chalk for colored text
   - Green for success/profit
