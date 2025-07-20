@@ -94,26 +94,26 @@
   - Helpful user feedback and quick access tips
 
 ## **Phase 4: Portfolio Management**
-- [ ] **4.1** Create portfolio view command
+- [x] **4.1** Create portfolio view command
   - Command: `coins-cli portfolio view`
   - API endpoint: `GET /api/transactions/portfolio/:user_id`
   - Display current holdings with current values
   - Show: coin name, symbol, quantity, current price, total value, total invested
-- [ ] **4.2** Display portfolio with profit/loss
+- [x] **4.2** Display portfolio with profit/loss
   - Calculate and show profit/loss for each coin
   - Color-coded output (green for profit, red for loss)
   - Percentage change calculations
-- [ ] **4.3** Add portfolio summary
+- [x] **4.3** Add portfolio summary
   - Command: `coins-cli portfolio summary`
   - Total portfolio value
   - Total profit/loss
   - Available funds
   - Portfolio performance metrics
-- [ ] **4.4** Implement portfolio filtering
+- [x] **4.4** Implement portfolio filtering
   - Filter by coin symbol
   - Sort by value, profit/loss, quantity
   - Show only profitable/losing positions
-- [ ] **4.5** Add portfolio export
+- [x] **4.5** Add portfolio export
   - Export to CSV format
   - Export to JSON format
   - Save to file with timestamp
