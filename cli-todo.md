@@ -119,35 +119,35 @@
   - Save to file with timestamp
 
 ## **Phase 5: Trading Operations**
-- [ ] **5.1** Implement buy coin command
+- [x] **5.1** Implement buy coin command
   - Command: `coins-cli buy <coin-id> <amount>`
   - API endpoint: `POST /api/transactions/buy`
   - Interactive confirmation prompts
   - Show transaction cost and confirmation
   - Validate sufficient funds before transaction
-- [ ] **5.2** Implement sell coin command
+- [x] **5.2** Implement sell coin command
   - Command: `coins-cli sell <coin-id> <amount>`
   - API endpoint: `POST /api/transactions/sell`
   - Interactive confirmation prompts
   - Show transaction value and confirmation
   - Validate sufficient coins before transaction
-- [ ] **5.3** Add transaction confirmation
+- [x] **5.3** Add transaction confirmation
   - Show transaction details before execution
   - Display current price and total cost/value
   - Require user confirmation (Y/N)
   - Show success/failure messages
-- [ ] **5.4** Create transaction history view
+- [x] **5.4** Create transaction history view
   - Command: `coins-cli transactions [--limit] [--type]`
   - API endpoint: `GET /api/transactions/user/:user_id`
   - Display recent transactions
   - Filter by transaction type (BUY/SELL)
   - Show transaction details with timestamps
-- [ ] **5.5** Implement transaction details
+- [x] **5.5** Implement transaction details
   - Command: `coins-cli transactions <transaction-id>`
   - API endpoint: `GET /api/transactions/:transaction_id`
   - Detailed transaction information
   - Show all transaction properties
-- [ ] **5.6** Add transaction export
+- [x] **5.6** Add transaction export
   - Export transaction history to CSV
   - Export to JSON format
   - Filter by date range

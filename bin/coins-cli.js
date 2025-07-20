@@ -155,14 +155,14 @@ portfolio
 
 program
   .command('buy <coin-id> <amount>')
-  .description('Buy coins')
+  .description('Buy coins (use "market list" to see available coin IDs)')
   .action(async (coinId, amount) => {
     await transactionCommands.buy(coinId, amount);
   });
 
 program
   .command('sell <coin-id> <amount>')
-  .description('Sell coins')
+  .description('Sell coins (use "market list" to see available coin IDs)')
   .action(async (coinId, amount) => {
     await transactionCommands.sell(coinId, amount);
   });

@@ -1,4 +1,5 @@
 const inquirer = require('inquirer');
+const chalk = require('chalk');
 const display = require('../utils/display');
 const api = require('../services/api');
 const config = require('../config');
@@ -13,6 +14,7 @@ const transactionCommands = {
     if (!coinId || !amount) {
       display.error('Coin ID and amount are required');
       display.info('Usage: coins-cli buy <coin-id> <amount>');
+      display.info('Use "coins-cli market list" to see available coin IDs');
       return;
     }
 
@@ -27,7 +29,7 @@ const transactionCommands = {
     try {
       // Get current coin price
       const coinResponse = await api.getCoin(coinId);
-      const coin = coinResponse.data;
+      const coin = coinResponse.data.coin;
       const totalCost = numAmount * coin.current_price;
       
       console.log(display.colors.bold('Transaction Details:'));
@@ -55,18 +57,17 @@ const transactionCommands = {
       
       try {
         const response = await api.buyCoin({
-          user_id: user.userId,
+          user_id: parseInt(user.userId),
           coin_id: coinId,
-          quantity: numAmount,
-          price_per_coin: coin.current_price
+          amount: numAmount
         });
         
         spinner.succeed('Transaction completed successfully!');
         
-        const transaction = response.data;
+        const transaction = response.data.data;
         display.success(`Successfully bought ${numAmount} ${coin.symbol}`);
         display.info(`Transaction ID: ${transaction.transaction_id}`);
-        display.info(`Total Cost: ${display.formatCurrency(transaction.total_cost)}`);
+        display.info(`Total Cost: ${display.formatCurrency(transaction.total_amount)}`);
         
       } catch (apiError) {
         spinner.fail('Transaction failed');
@@ -80,17 +81,23 @@ const transactionCommands = {
         
         if (status === 400) {
           display.error('Invalid transaction request');
-          if (data && data.msg) {
-            display.info(`Server message: ${data.msg}`);
+          if (data && data.message) {
+            display.info(`Server message: ${data.message}`);
+          }
+        } else if (status === 401) {
+          display.error('Unauthorized - please login again');
+          if (data && data.message) {
+            display.info(`Server message: ${data.message}`);
           }
         } else if (status === 404) {
           display.error('Coin not found');
-        } else if (status === 409) {
-          display.error('Insufficient funds for this transaction');
+          if (data && data.message) {
+            display.info(`Server message: ${data.message}`);
+          }
         } else {
           display.error(`Transaction failed (HTTP ${status})`);
-          if (data && data.msg) {
-            display.info(`Server message: ${data.msg}`);
+          if (data && data.message) {
+            display.info(`Server message: ${data.message}`);
           }
         }
       } else {
@@ -110,6 +117,7 @@ const transactionCommands = {
     if (!coinId || !amount) {
       display.error('Coin ID and amount are required');
       display.info('Usage: coins-cli sell <coin-id> <amount>');
+      display.info('Use "coins-cli market list" to see available coin IDs');
       return;
     }
 
@@ -124,7 +132,7 @@ const transactionCommands = {
     try {
       // Get current coin price
       const coinResponse = await api.getCoin(coinId);
-      const coin = coinResponse.data;
+      const coin = coinResponse.data.coin;
       const totalValue = numAmount * coin.current_price;
       
       console.log(display.colors.bold('Transaction Details:'));
@@ -152,18 +160,17 @@ const transactionCommands = {
       
       try {
         const response = await api.sellCoin({
-          user_id: user.userId,
+          user_id: parseInt(user.userId),
           coin_id: coinId,
-          quantity: numAmount,
-          price_per_coin: coin.current_price
+          amount: numAmount
         });
         
         spinner.succeed('Transaction completed successfully!');
         
-        const transaction = response.data;
+        const transaction = response.data.data;
         display.success(`Successfully sold ${numAmount} ${coin.symbol}`);
         display.info(`Transaction ID: ${transaction.transaction_id}`);
-        display.info(`Total Value: ${display.formatCurrency(transaction.total_value)}`);
+        display.info(`Total Value: ${display.formatCurrency(transaction.total_amount)}`);
         
       } catch (apiError) {
         spinner.fail('Transaction failed');
@@ -177,17 +184,23 @@ const transactionCommands = {
         
         if (status === 400) {
           display.error('Invalid transaction request');
-          if (data && data.msg) {
-            display.info(`Server message: ${data.msg}`);
+          if (data && data.message) {
+            display.info(`Server message: ${data.message}`);
+          }
+        } else if (status === 401) {
+          display.error('Unauthorized - please login again');
+          if (data && data.message) {
+            display.info(`Server message: ${data.message}`);
           }
         } else if (status === 404) {
           display.error('Coin not found');
-        } else if (status === 409) {
-          display.error('Insufficient coins for this transaction');
+          if (data && data.message) {
+            display.info(`Server message: ${data.message}`);
+          }
         } else {
           display.error(`Transaction failed (HTTP ${status})`);
-          if (data && data.msg) {
-            display.info(`Server message: ${data.msg}`);
+          if (data && data.message) {
+            display.info(`Server message: ${data.message}`);
           }
         }
       } else {
@@ -214,11 +227,11 @@ const transactionCommands = {
       const response = await api.getUserTransactions(user.userId, limit);
       spinner.succeed('Transaction history loaded');
       
-      let transactions = response.data;
+      let transactions = response.data.transactions;
       
       // Filter by type if specified
       if (type) {
-        transactions = transactions.filter(t => t.transaction_type === type);
+        transactions = transactions.filter(t => t.type === type);
       }
       
       if (transactions.length === 0) {
@@ -229,17 +242,17 @@ const transactionCommands = {
       const table = display.createTransactionTable();
       
       transactions.forEach(transaction => {
-        const typeColor = transaction.transaction_type === 'BUY' ? 
-          display.colors.green : display.colors.red;
+        const typeColor = transaction.type === 'BUY' ? 
+          chalk.green : chalk.red;
         
         table.push([
           transaction.transaction_id,
-          typeColor(transaction.transaction_type),
-          transaction.coin_symbol,
+          typeColor(transaction.type),
+          transaction.symbol,
           transaction.quantity,
-          display.formatCurrency(transaction.price_per_coin),
-          display.formatCurrency(transaction.total_cost || transaction.total_value),
-          new Date(transaction.timestamp).toLocaleString()
+          display.formatCurrency(transaction.price),
+          display.formatCurrency(transaction.total_amount),
+          new Date(transaction.created_at).toLocaleString()
         ]);
       });
       
@@ -273,15 +286,15 @@ const transactionCommands = {
       
       console.log(display.colors.bold('Transaction Information:'));
       console.log(`  ID: ${transaction.transaction_id}`);
-      console.log(`  Type: ${transaction.transaction_type}`);
+      console.log(`  Type: ${transaction.type}`);
       console.log(`  User ID: ${transaction.user_id}`);
       console.log(`  Coin ID: ${transaction.coin_id}`);
-      console.log(`  Coin Symbol: ${transaction.coin_symbol}`);
+      console.log(`  Coin Name: ${transaction.coin_name}`);
+      console.log(`  Coin Symbol: ${transaction.symbol}`);
       console.log(`  Quantity: ${transaction.quantity}`);
-      console.log(`  Price per Coin: ${display.formatCurrency(transaction.price_per_coin)}`);
-      console.log(`  Total Cost: ${display.formatCurrency(transaction.total_cost || 0)}`);
-      console.log(`  Total Value: ${display.formatCurrency(transaction.total_value || 0)}`);
-      console.log(`  Timestamp: ${new Date(transaction.timestamp).toLocaleString()}`);
+      console.log(`  Price per Coin: ${display.formatCurrency(transaction.price)}`);
+      console.log(`  Total Amount: ${display.formatCurrency(transaction.total_amount)}`);
+      console.log(`  Timestamp: ${new Date(transaction.created_at).toLocaleString()}`);
       
       if (transaction.status) {
         console.log(`  Status: ${transaction.status}`);
@@ -310,14 +323,14 @@ const transactionCommands = {
       const response = await api.getUserTransactions(user.userId, limit);
       spinner.succeed('Transaction history loaded');
       
-      const transactions = response.data;
+      const transactions = response.data.transactions;
       
       if (format === 'csv') {
         // CSV export
         const csvContent = [
-          'Transaction ID,Type,Coin Symbol,Quantity,Price per Coin,Total Cost,Total Value,Timestamp',
+          'Transaction ID,Type,Coin Name,Coin Symbol,Quantity,Price per Coin,Total Amount,Timestamp',
           ...transactions.map(t => 
-            `${t.transaction_id},${t.transaction_type},${t.coin_symbol},${t.quantity},${t.price_per_coin},${t.total_cost || 0},${t.total_value || 0},${new Date(t.timestamp).toISOString()}`
+            `${t.transaction_id},${t.type},${t.coin_name},${t.symbol},${t.quantity},${t.price},${t.total_amount},${new Date(t.created_at).toISOString()}`
           )
         ].join('\n');
         
