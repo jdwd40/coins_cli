@@ -1,23 +1,19 @@
 const display = require('../utils/display');
 const api = require('../services/api');
 const config = require('../config');
+const authMiddleware = require('../services/authMiddleware');
 
 // Portfolio commands
 const portfolioCommands = {
   // View portfolio
   async view() {
-    const userId = config.get('user.userId');
-    if (!userId) {
-      display.error('You must be logged in to view your portfolio');
-      display.info('Run: coins-cli login');
-      return;
-    }
+    const user = authMiddleware.requireAuth();
 
     display.header('Portfolio View');
     
     try {
       const spinner = display.spinner('Fetching portfolio data...');
-      const response = await api.getPortfolio(userId);
+      const response = await api.getPortfolio(user.userId);
       spinner.succeed('Portfolio data loaded');
       
       const portfolio = response.data;
@@ -73,18 +69,13 @@ const portfolioCommands = {
 
   // Portfolio summary
   async summary() {
-    const userId = config.get('user.userId');
-    if (!userId) {
-      display.error('You must be logged in to view your portfolio summary');
-      display.info('Run: coins-cli login');
-      return;
-    }
+    const user = authMiddleware.requireAuth();
 
     display.header('Portfolio Summary');
     
     try {
       const spinner = display.spinner('Fetching portfolio summary...');
-      const response = await api.getPortfolio(userId);
+      const response = await api.getPortfolio(user.userId);
       spinner.succeed('Portfolio summary loaded');
       
       const portfolio = response.data;
@@ -144,18 +135,13 @@ const portfolioCommands = {
 
   // Filter portfolio
   async filter(options = {}) {
-    const userId = config.get('user.userId');
-    if (!userId) {
-      display.error('You must be logged in to filter your portfolio');
-      display.info('Run: coins-cli login');
-      return;
-    }
+    const user = authMiddleware.requireAuth();
 
     display.header('Portfolio Filter');
     
     try {
       const spinner = display.spinner('Fetching portfolio data...');
-      const response = await api.getPortfolio(userId);
+      const response = await api.getPortfolio(user.userId);
       spinner.succeed('Portfolio data loaded');
       
       let holdings = response.data.holdings || [];
@@ -228,12 +214,7 @@ const portfolioCommands = {
 
   // Export portfolio
   async export(options = {}) {
-    const userId = config.get('user.userId');
-    if (!userId) {
-      display.error('You must be logged in to export your portfolio');
-      display.info('Run: coins-cli login');
-      return;
-    }
+    const user = authMiddleware.requireAuth();
 
     const format = options.format || 'json';
     const filename = options.filename || `portfolio-${new Date().toISOString().split('T')[0]}`;
@@ -242,7 +223,7 @@ const portfolioCommands = {
     
     try {
       const spinner = display.spinner('Fetching portfolio data...');
-      const response = await api.getPortfolio(userId);
+      const response = await api.getPortfolio(user.userId);
       spinner.succeed('Portfolio data loaded');
       
       const portfolio = response.data;

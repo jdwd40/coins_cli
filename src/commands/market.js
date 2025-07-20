@@ -14,7 +14,10 @@ const marketCommands = {
       
       const table = display.createCoinTable();
       
-      response.data.forEach(coin => {
+      // Handle the coins wrapper object in the response
+      const coins = response.data.coins || response.data;
+      
+      coins.forEach(coin => {
         table.push([
           coin.coin_id,
           coin.name,
@@ -26,7 +29,7 @@ const marketCommands = {
       });
       
       console.log(table.toString());
-      display.info(`Showing ${response.data.length} coins`);
+      display.info(`Showing ${coins.length} coins`);
       
     } catch (error) {
       display.error('Failed to fetch market data');
@@ -51,7 +54,8 @@ const marketCommands = {
       const response = await api.getCoin(coinId);
       spinner.succeed('Coin details loaded');
       
-      const coin = response.data;
+      // Handle the coin wrapper object in the response
+      const coin = response.data.coin || response.data;
       
       console.log(display.colors.bold('Coin Information:'));
       console.log(`  ID: ${coin.coin_id}`);
@@ -211,9 +215,12 @@ const marketCommands = {
       const response = await api.getCoins();
       spinner.succeed('Search completed');
       
+      // Handle the coins wrapper object in the response
+      const coins = response.data.coins || response.data;
+      
       // Filter coins based on search query
       const searchTerm = query.toLowerCase();
-      const filteredCoins = response.data.filter(coin => 
+      const filteredCoins = coins.filter(coin => 
         coin.name.toLowerCase().includes(searchTerm) ||
         coin.symbol.toLowerCase().includes(searchTerm)
       );

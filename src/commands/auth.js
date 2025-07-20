@@ -2,6 +2,7 @@ const inquirer = require('inquirer');
 const display = require('../utils/display');
 const api = require('../services/api');
 const config = require('../config');
+const authMiddleware = require('../services/authMiddleware');
 
 // Authentication commands
 const authCommands = {
@@ -286,16 +287,17 @@ const authCommands = {
 
   // Check if user is authenticated
   isAuthenticated() {
-    return config.get('user.token') !== null;
+    return authMiddleware.isAuthenticated();
   },
 
   // Get current user info
   getCurrentUser() {
-    return {
-      userId: config.get('user.userId'),
-      username: config.get('user.username'),
-      token: config.get('user.token')
-    };
+    return authMiddleware.getCurrentUser();
+  },
+
+  // Require authentication middleware
+  requireAuth() {
+    return authMiddleware.requireAuth();
   }
 };
 

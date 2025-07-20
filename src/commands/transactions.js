@@ -2,17 +2,13 @@ const inquirer = require('inquirer');
 const display = require('../utils/display');
 const api = require('../services/api');
 const config = require('../config');
+const authMiddleware = require('../services/authMiddleware');
 
 // Transaction commands
 const transactionCommands = {
   // Buy coin
   async buy(coinId, amount) {
-    const userId = config.get('user.userId');
-    if (!userId) {
-      display.error('You must be logged in to buy coins');
-      display.info('Run: coins-cli login');
-      return;
-    }
+    const user = authMiddleware.requireAuth();
 
     if (!coinId || !amount) {
       display.error('Coin ID and amount are required');
@@ -59,7 +55,7 @@ const transactionCommands = {
       
       try {
         const response = await api.buyCoin({
-          user_id: userId,
+          user_id: user.userId,
           coin_id: coinId,
           quantity: numAmount,
           price_per_coin: coin.current_price
@@ -109,12 +105,7 @@ const transactionCommands = {
 
   // Sell coin
   async sell(coinId, amount) {
-    const userId = config.get('user.userId');
-    if (!userId) {
-      display.error('You must be logged in to sell coins');
-      display.info('Run: coins-cli login');
-      return;
-    }
+    const user = authMiddleware.requireAuth();
 
     if (!coinId || !amount) {
       display.error('Coin ID and amount are required');
@@ -161,7 +152,7 @@ const transactionCommands = {
       
       try {
         const response = await api.sellCoin({
-          user_id: userId,
+          user_id: user.userId,
           coin_id: coinId,
           quantity: numAmount,
           price_per_coin: coin.current_price
@@ -211,12 +202,7 @@ const transactionCommands = {
 
   // View transaction history
   async history(options = {}) {
-    const userId = config.get('user.userId');
-    if (!userId) {
-      display.error('You must be logged in to view transaction history');
-      display.info('Run: coins-cli login');
-      return;
-    }
+    const user = authMiddleware.requireAuth();
 
     const limit = options.limit || 10;
     const type = options.type; // 'BUY' or 'SELL'
@@ -225,7 +211,7 @@ const transactionCommands = {
     
     try {
       const spinner = display.spinner('Fetching transaction history...');
-      const response = await api.getUserTransactions(userId, limit);
+      const response = await api.getUserTransactions(user.userId, limit);
       spinner.succeed('Transaction history loaded');
       
       let transactions = response.data;
@@ -311,12 +297,7 @@ const transactionCommands = {
 
   // Export transaction history
   async export(options = {}) {
-    const userId = config.get('user.userId');
-    if (!userId) {
-      display.error('You must be logged in to export transaction history');
-      display.info('Run: coins-cli login');
-      return;
-    }
+    const user = authMiddleware.requireAuth();
 
     const format = options.format || 'json';
     const filename = options.filename || `transactions-${new Date().toISOString().split('T')[0]}`;
@@ -326,7 +307,7 @@ const transactionCommands = {
     
     try {
       const spinner = display.spinner('Fetching transaction history...');
-      const response = await api.getUserTransactions(userId, limit);
+      const response = await api.getUserTransactions(user.userId, limit);
       spinner.succeed('Transaction history loaded');
       
       const transactions = response.data;
