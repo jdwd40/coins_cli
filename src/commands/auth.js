@@ -74,6 +74,7 @@ const authCommands = {
         // Store user data
         config.set('user.userId', response.data.user.user_id);
         config.set('user.username', response.data.user.username);
+        config.set('user.funds', response.data.user.funds);
         
         display.success(`Welcome, ${response.data.user.username}!`);
         display.info(`Your account has been created with ${display.formatCurrency(response.data.user.funds)} in funds.`);
@@ -190,6 +191,7 @@ const authCommands = {
         config.set('user.token', response.data.token);
         config.set('user.userId', response.data.user.user_id);
         config.set('user.username', response.data.user.username);
+        config.set('user.funds', response.data.user.funds);
         
         display.success(`Welcome back, ${response.data.user.username}!`);
         display.info(`Current funds: ${display.formatCurrency(response.data.user.funds)}`);
@@ -278,6 +280,7 @@ const authCommands = {
       config.delete('user.token');
       config.delete('user.userId');
       config.delete('user.username');
+      config.delete('user.funds');
       
       display.success('Logged out successfully');
     } else {

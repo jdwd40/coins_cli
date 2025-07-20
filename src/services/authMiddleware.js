@@ -36,7 +36,8 @@ class AuthMiddleware {
     return {
       userId: config.get('user.userId'),
       username: config.get('user.username'),
-      token: config.get('user.token')
+      token: config.get('user.token'),
+      funds: config.get('user.funds')
     };
   }
 
@@ -67,6 +68,7 @@ class AuthMiddleware {
     config.delete('user.token');
     config.delete('user.userId');
     config.delete('user.username');
+    config.delete('user.funds');
   }
 
   // Process failed requests queue

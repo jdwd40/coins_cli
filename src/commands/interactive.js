@@ -67,7 +67,12 @@ const interactiveCommands = {
       
       // Safely handle funds display
       if (user.funds !== undefined && user.funds !== null) {
-        console.log(chalk.green.bold(`💰 Available Funds: £${user.funds.toFixed(2)}`));
+        const funds = parseFloat(user.funds);
+        if (!isNaN(funds)) {
+          console.log(chalk.green.bold(`💰 Available Funds: £${funds.toFixed(2)}`));
+        } else {
+          console.log(chalk.yellow.bold(`💰 Available Funds: £0.00 (invalid format)`));
+        }
       } else {
         console.log(chalk.yellow.bold(`💰 Available Funds: £0.00 (not available)`));
       }
@@ -659,7 +664,12 @@ const interactiveCommands = {
         
         // Safely handle funds display
         if (user.funds !== undefined && user.funds !== null) {
-          console.log(chalk.green.bold(`💰 Available Funds: £${user.funds.toFixed(2)}`));
+          const funds = parseFloat(user.funds);
+          if (!isNaN(funds)) {
+            console.log(chalk.green.bold(`💰 Available Funds: £${funds.toFixed(2)}`));
+          } else {
+            console.log(chalk.yellow.bold(`💰 Available Funds: £0.00 (invalid format)`));
+          }
         } else {
           console.log(chalk.yellow.bold(`💰 Available Funds: £0.00 (not available)`));
         }
