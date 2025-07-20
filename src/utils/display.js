@@ -100,6 +100,21 @@ const display = {
     return value >= 0 ? colors.profit(formatted) : colors.loss(formatted);
   },
   
+  // Format market trend
+  formatMarketTrend: (trend) => {
+    const trendMap = {
+      'STRONG_BOOM': colors.profit('🚀 STRONG BOOM'),
+      'BOOM': colors.profit('📈 BOOM'),
+      'SLIGHT_BOOM': colors.profit('↗️ SLIGHT BOOM'),
+      'NEUTRAL': colors.neutral('➡️ NEUTRAL'),
+      'SLIGHT_BUST': colors.loss('↘️ SLIGHT BUST'),
+      'BUST': colors.loss('📉 BUST'),
+      'STRONG_BUST': colors.loss('💥 STRONG BUST')
+    };
+    
+    return trendMap[trend] || colors.gray(trend || 'UNKNOWN');
+  },
+  
   // Clear screen
   clearScreen: () => {
     console.clear();
@@ -108,7 +123,10 @@ const display = {
   // Print separator
   separator: () => {
     console.log(colors.gray('─'.repeat(80)));
-  }
+  },
+  
+  // Export colors for use in other modules
+  colors: colors
 };
 
 module.exports = display; 

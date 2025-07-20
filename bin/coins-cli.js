@@ -76,10 +76,12 @@ market
   .description('Show price history for a coin')
   .option('-p, --page <number>', 'Page number', '1')
   .option('-l, --limit <number>', 'Number of entries per page', '10')
+  .option('-t, --timeRange <range>', 'Time range (10M, 30M, 1H, 2H, 12H, 24H, ALL)', '30M')
   .action(async (coinId, options) => {
     await marketCommands.history(coinId, {
       page: parseInt(options.page),
-      limit: parseInt(options.limit)
+      limit: parseInt(options.limit),
+      timeRange: options.timeRange
     });
   });
 
@@ -232,7 +234,7 @@ program
     console.log(chalk.yellow('Market Data:'));
     console.log('  market list              - List all coins');
     console.log('  market details <coin-id> - Show coin details');
-    console.log('  market history <coin-id> - Show price history');
+    console.log('  market history <coin-id> - Show price history (with --timeRange option)');
     console.log('  market overview          - Show market overview');
     console.log('  market stats             - Show market statistics');
     console.log('  market search <query>    - Search coins');

@@ -117,6 +117,7 @@ const interactiveCommands = {
         choices: [
           { name: '📋 List All Coins', value: 'list' },
           { name: '🔍 Search Coins', value: 'search' },
+          { name: '📈 Coin Price History', value: 'history' },
           { name: '📊 Market Overview', value: 'overview' },
           { name: '📈 Market Statistics', value: 'stats' },
           { name: '⬅️ Back to Main Menu', value: 'back' }
@@ -141,7 +142,16 @@ const interactiveCommands = {
         ]);
         await marketCommands.search(query);
         break;
-      case 'overview':
+      case 'history':
+        const { coinId } = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'coinId',
+            message: 'Enter coin ID:',
+            validate: (input) => input.trim() ? true : 'Coin ID is required'
+          }
+        ]);
+        
         const { timeRange } = await inquirer.prompt([
           {
             type: 'list',
@@ -158,7 +168,27 @@ const interactiveCommands = {
             ]
           }
         ]);
-        await marketCommands.overview({ timeRange });
+        
+        await marketCommands.history(coinId, { timeRange });
+        break;
+      case 'overview':
+        const { overviewTimeRange } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'overviewTimeRange',
+            message: 'Select time range:',
+            choices: [
+              { name: '10 Minutes', value: '10M' },
+              { name: '30 Minutes', value: '30M' },
+              { name: '1 Hour', value: '1H' },
+              { name: '2 Hours', value: '2H' },
+              { name: '12 Hours', value: '12H' },
+              { name: '24 Hours', value: '24H' },
+              { name: 'All Time', value: 'ALL' }
+            ]
+          }
+        ]);
+        await marketCommands.overview({ timeRange: overviewTimeRange });
         break;
       case 'stats':
         await marketCommands.stats();

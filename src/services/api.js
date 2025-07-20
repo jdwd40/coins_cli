@@ -60,12 +60,16 @@ const api = {
   getCoins: () => publicApiClient.get('/api/coins'),
   getCoin: (coinId) => publicApiClient.get(`/api/coins/${coinId}`),
   getCoinHistory: (coinId, page = 1, limit = 10) => 
-    publicApiClient.get(`/api/coins/${coinId}/history?page=${page}&limit=${limit}`),
+    publicApiClient.get(`/api/coins/${coinId}/price-history?page=${page}&limit=${limit}`),
+  
+  // Get coin history with time range (if API supports it)
+  getCoinHistoryWithTimeRange: (coinId, timeRange = '30M', page = 1, limit = 10) => 
+    publicApiClient.get(`/api/coins/${coinId}/price-history?timeRange=${timeRange}&page=${page}&limit=${limit}`),
   
   // Market (public data - no auth required)
   getMarketHistory: (timeRange = '30M') => 
     publicApiClient.get(`/api/market/price-history?timeRange=${timeRange}`),
-  getMarketStats: () => publicApiClient.get('/api/market/stats'),
+  getMarketStats: () => publicApiClient.get('https://jdwd40.com/api-2/api/market/stats'),
   
   // Transactions (requires authentication)
   buyCoin: (transactionData) => authenticatedApiClient.post('/api/transactions/buy', transactionData),

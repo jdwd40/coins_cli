@@ -28,62 +28,70 @@
   - Command grouping and organization
 
 ## **Phase 2: Authentication System**
-- [ ] **2.1** Implement user registration command
+- [x] **2.1** Implement user registration command
   - Command: `coins-cli register`
   - Interactive prompts for username, email, password
   - API endpoint: `POST /api/users/register`
   - Validation for required fields and format
-- [ ] **2.2** Implement user login command
+- [x] **2.2** Implement user login command
   - Command: `coins-cli login`
   - Interactive prompts for email and password
   - API endpoint: `POST /api/users/login`
   - JWT token storage in local config
-- [ ] **2.3** Create JWT token management
+- [x] **2.3** Create JWT token management
   - Secure token storage using `conf` package
   - Token validation and refresh logic
   - Automatic token inclusion in API requests
-- [ ] **2.4** Add logout functionality
+- [x] **2.4** Add logout functionality
   - Command: `coins-cli logout`
   - Clear stored tokens and user data
   - Reset authentication state
-- [ ] **2.5** Implement authentication middleware
+- [x] **2.5** Implement authentication middleware
   - Check token validity before API calls
   - Handle token expiration gracefully
   - Redirect to login when needed
-- [ ] **2.6** Add session persistence
+- [x] **2.6** Add session persistence
   - Store user info locally
   - Remember login state across sessions
   - Auto-login functionality
 
 ## **Phase 3: Market Data & Coin Information**
-- [ ] **3.1** Create command to list all coins
+- [x] **3.1** Create command to list all coins
   - Command: `coins-cli market list`
   - API endpoint: `GET /api/coins`
   - Display in formatted table with key info
   - Show: coin_id, name, symbol, current_price, market_cap, price_change_24h
-- [ ] **3.2** Implement coin details view
+- [x] **3.2** Implement coin details view
   - Command: `coins-cli market details <coin-id>`
   - API endpoint: `GET /api/coins/:coin_id`
   - Detailed coin information display
   - Show all coin properties including founder
-- [ ] **3.3** Add price history viewing
-  - Command: `coins-cli market history <coin-id> [--page] [--limit]`
-  - API endpoint: `GET /api/coins/:coin_id/history`
+- [x] **3.3** Add price history viewing
+  - Command: `coins-cli market history <coin-id> [--page] [--limit] [--timeRange]`
+  - API endpoint: `GET /api/coins/:coin_id/price-history`
   - Paginated price history display
   - Optional pagination parameters
-- [ ] **3.4** Create market overview command
+  - Time range filtering (10M, 30M, 1H, 2H, 12H, 24H, ALL)
+  - Default time range: 30M (last 30 minutes)
+- [x] **3.4** Create market overview command
   - Command: `coins-cli market overview [--timeRange]`
   - API endpoint: `GET /api/market/price-history`
   - Market trend and total value display
   - Time range options: 10M, 30M, 1H, 2H, 12H, 24H, ALL
-- [ ] **3.5** Add market statistics
+- [x] **3.5** Add market statistics
   - Command: `coins-cli market stats`
-  - API endpoint: `GET /api/market/stats`
+  - API endpoint: `GET https://jdwd40.com/api-2/api/market/stats`
   - Market performance metrics
-- [ ] **3.6** Implement search functionality
+  - Current market cycle information
+  - Active market events with effects
+  - Real-time market status and values
+- [x] **3.6** Implement search functionality
   - Search coins by name or symbol
   - Fuzzy matching for better UX
   - Display search results in table format
+  - Enhanced with multi-word search support
+  - Results sorted by relevance (exact matches first)
+  - Helpful user feedback and quick access tips
 
 ## **Phase 4: Portfolio Management**
 - [ ] **4.1** Create portfolio view command
@@ -254,7 +262,7 @@
 - Authentication: `/api/users/register`, `/api/users/login`
 - Coins: `/api/coins`, `/api/coins/:id`, `/api/coins/:id/history`
 - Transactions: `/api/transactions/buy`, `/api/transactions/sell`, `/api/transactions/user/:id`, `/api/transactions/portfolio/:id`
-- Market: `/api/market/price-history`, `/api/market/stats`
+- Market: `/api/market/price-history`, `https://jdwd40.com/api-2/api/market/stats`
 
 ✅ **Data Structures Verified:**
 - User object includes: user_id, username, email, funds, created_at
@@ -280,6 +288,7 @@ coins-cli market list
 coins-cli market details <coin-id>
 coins-cli market history <coin-id>
 coins-cli market overview
+coins-cli market search <query>
 
 # Portfolio
 coins-cli portfolio view
