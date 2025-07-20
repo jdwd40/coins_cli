@@ -213,6 +213,14 @@ program
     await interactiveCommands.start();
   });
 
+program
+  .command('dashboard')
+  .alias('d')
+  .description('Start dashboard mode with user info display')
+  .action(async () => {
+    await interactiveCommands.start();
+  });
+
 // ============================================================================
 // HELP COMMAND
 // ============================================================================
@@ -260,6 +268,7 @@ program
     
     console.log(chalk.yellow('Interactive:'));
     console.log('  interactive              - Start interactive mode');
+    console.log('  dashboard                - Start dashboard mode (same as interactive)');
     console.log('');
     
     console.log(chalk.yellow('Global options:'));

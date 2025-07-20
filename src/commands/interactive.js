@@ -1,5 +1,7 @@
 const inquirer = require('inquirer');
+const chalk = require('chalk');
 const display = require('../utils/display');
+const api = require('../services/api');
 const authCommands = require('./auth');
 const marketCommands = require('./market');
 const portfolioCommands = require('./portfolio');
@@ -7,9 +9,12 @@ const transactionCommands = require('./transactions');
 
 // Interactive menu system
 const interactiveCommands = {
-  // Main interactive menu
+  // Main interactive menu with enhanced dashboard
   async start() {
     display.header('Coins CLI - Interactive Mode');
+    
+    // Show user info prominently at the top
+    await this.displayUserInfo();
     
     while (true) {
       const { action } = await inquirer.prompt([
@@ -18,11 +23,11 @@ const interactiveCommands = {
           name: 'action',
           message: 'What would you like to do?',
           choices: [
-            { name: '🔐 Authentication', value: 'auth' },
             { name: '📊 Market Data', value: 'market' },
             { name: '💼 Portfolio', value: 'portfolio' },
             { name: '💰 Trading', value: 'trading' },
             { name: '📈 Transaction History', value: 'transactions' },
+            { name: '👤 Account Settings', value: 'account' },
             { name: '❌ Exit', value: 'exit' }
           ]
         }
@@ -35,6 +40,8 @@ const interactiveCommands = {
 
       try {
         await this.handleAction(action);
+        // Refresh user info after each action
+        await this.displayUserInfo();
       } catch (error) {
         display.error('An error occurred');
         if (process.argv.includes('--debug')) {
@@ -46,25 +53,74 @@ const interactiveCommands = {
     }
   },
 
+  // Display user information prominently
+  async displayUserInfo() {
+    const user = authCommands.getCurrentUser();
+    if (user) {
+      // Debug: Log the user object to see its structure
+      if (process.argv.includes('--debug')) {
+        console.log('Debug - User object:', JSON.stringify(user, null, 2));
+      }
+      
+      console.log(chalk.cyan.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+      console.log(chalk.white.bold(`👤 User: ${user.username}`));
+      
+      // Safely handle funds display
+      if (user.funds !== undefined && user.funds !== null) {
+        console.log(chalk.green.bold(`💰 Available Funds: £${user.funds.toFixed(2)}`));
+      } else {
+        console.log(chalk.yellow.bold(`💰 Available Funds: £0.00 (not available)`));
+      }
+      
+      console.log(chalk.cyan.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+    } else {
+      console.log(chalk.yellow.bold('⚠️  Not logged in. Please login first.'));
+      console.log(chalk.cyan.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+    }
+    console.log('');
+  },
+
   // Handle main menu actions
   async handleAction(action) {
+    let needsPause = false;
+    
     switch (action) {
-      case 'auth':
-        await this.showAuthMenu();
-        break;
       case 'market':
         await this.showMarketMenu();
+        needsPause = true;
         break;
       case 'portfolio':
         await this.showPortfolioMenu();
+        needsPause = true;
         break;
       case 'trading':
         await this.showTradingMenu();
         break;
       case 'transactions':
         await this.showTransactionsMenu();
+        needsPause = true;
+        break;
+      case 'account':
+        await this.showAccountMenu();
+        needsPause = true;
         break;
     }
+    
+    // Only pause after data display actions
+    if (needsPause) {
+      await this.pauseForUser();
+    }
+  },
+
+  // Add a pause method to wait for user input
+  async pauseForUser() {
+    await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'continue',
+        message: chalk.cyan('Press Enter to continue...'),
+      }
+    ]);
   },
 
   // Authentication submenu
@@ -229,6 +285,11 @@ const interactiveCommands = {
         await this.showPortfolioExportMenu();
         break;
     }
+    
+    // Add pause after portfolio operations
+    if (portfolioAction !== 'back') {
+      await this.pauseForUser();
+    }
   },
 
   // Portfolio filter submenu
@@ -319,50 +380,164 @@ const interactiveCommands = {
     }
   },
 
-  // Buy submenu
+  // Buy submenu with coin list and 'q' to quit
   async showBuyMenu() {
+    // First, show the list of available coins
+    display.header('Available Coins for Purchase');
+    
+    try {
+      const spinner = display.spinner('Fetching available coins...');
+      const response = await api.getCoins();
+      spinner.succeed('Coins loaded');
+      
+      const table = display.createCoinTable();
+      
+      // Handle the coins wrapper object in the response
+      const coins = response.data.coins || response.data;
+      
+      coins.forEach(coin => {
+        table.push([
+          coin.coin_id,
+          coin.name,
+          coin.symbol,
+          display.formatCurrency(coin.current_price),
+          display.formatCurrency(coin.market_cap),
+          display.formatPercentage(coin.price_change_24h)
+        ]);
+      });
+      
+      console.log(table.toString());
+      display.info(`Showing ${coins.length} coins`);
+      display.info(chalk.yellow('Type "q" at any time to return to main menu'));
+      console.log('');
+      
+    } catch (error) {
+      display.error('Failed to fetch market data');
+      if (process.argv.includes('--debug')) {
+        console.error(error);
+      }
+      return;
+    }
+
+    // Get coin ID with 'q' to quit option
     const { coinId } = await inquirer.prompt([
       {
         type: 'input',
         name: 'coinId',
-        message: 'Enter coin ID:',
-        validate: (input) => input.trim() ? true : 'Coin ID is required'
+        message: 'Enter coin ID (or "q" to quit):',
+        validate: (input) => {
+          if (input.toLowerCase() === 'q') return true;
+          return input.trim() ? true : 'Coin ID is required';
+        }
       }
     ]);
 
+    if (coinId.toLowerCase() === 'q') {
+      display.info('Returning to main menu...');
+      return;
+    }
+
+    // Get amount with 'q' to quit option
     const { amount } = await inquirer.prompt([
       {
-        type: 'number',
+        type: 'input',
         name: 'amount',
-        message: 'Enter amount to buy:',
-        validate: (input) => input > 0 ? true : 'Amount must be positive'
+        message: 'Enter amount to buy (or "q" to quit):',
+        validate: (input) => {
+          if (input.toLowerCase() === 'q') return true;
+          const num = parseFloat(input);
+          return !isNaN(num) && num > 0 ? true : 'Amount must be a positive number';
+        }
       }
     ]);
 
-    await transactionCommands.buy(coinId, amount);
+    if (amount.toLowerCase() === 'q') {
+      display.info('Returning to main menu...');
+      return;
+    }
+
+    // Execute the buy transaction
+    await transactionCommands.buy(coinId, parseFloat(amount));
   },
 
-  // Sell submenu
+  // Sell submenu with coin list and 'q' to quit
   async showSellMenu() {
+    // First, show the list of available coins
+    display.header('Available Coins for Sale');
+    
+    try {
+      const spinner = display.spinner('Fetching available coins...');
+      const response = await api.getCoins();
+      spinner.succeed('Coins loaded');
+      
+      const table = display.createCoinTable();
+      
+      // Handle the coins wrapper object in the response
+      const coins = response.data.coins || response.data;
+      
+      coins.forEach(coin => {
+        table.push([
+          coin.coin_id,
+          coin.name,
+          coin.symbol,
+          display.formatCurrency(coin.current_price),
+          display.formatCurrency(coin.market_cap),
+          display.formatPercentage(coin.price_change_24h)
+        ]);
+      });
+      
+      console.log(table.toString());
+      display.info(`Showing ${coins.length} coins`);
+      display.info(chalk.yellow('Type "q" at any time to return to main menu'));
+      console.log('');
+      
+    } catch (error) {
+      display.error('Failed to fetch market data');
+      if (process.argv.includes('--debug')) {
+        console.error(error);
+      }
+      return;
+    }
+
+    // Get coin ID with 'q' to quit option
     const { coinId } = await inquirer.prompt([
       {
         type: 'input',
         name: 'coinId',
-        message: 'Enter coin ID:',
-        validate: (input) => input.trim() ? true : 'Coin ID is required'
+        message: 'Enter coin ID (or "q" to quit):',
+        validate: (input) => {
+          if (input.toLowerCase() === 'q') return true;
+          return input.trim() ? true : 'Coin ID is required';
+        }
       }
     ]);
 
+    if (coinId.toLowerCase() === 'q') {
+      display.info('Returning to main menu...');
+      return;
+    }
+
+    // Get amount with 'q' to quit option
     const { amount } = await inquirer.prompt([
       {
-        type: 'number',
+        type: 'input',
         name: 'amount',
-        message: 'Enter amount to sell:',
-        validate: (input) => input > 0 ? true : 'Amount must be positive'
+        message: 'Enter amount to sell (or "q" to quit):',
+        validate: (input) => {
+          if (input.toLowerCase() === 'q') return true;
+          const num = parseFloat(input);
+          return !isNaN(num) && num > 0 ? true : 'Amount must be a positive number';
+        }
       }
     ]);
 
-    await transactionCommands.sell(coinId, amount);
+    if (amount.toLowerCase() === 'q') {
+      display.info('Returning to main menu...');
+      return;
+    }
+
+    // Execute the sell transaction
+    await transactionCommands.sell(coinId, parseFloat(amount));
   },
 
   // Transactions submenu
@@ -450,6 +625,57 @@ const interactiveCommands = {
     ]);
 
     await transactionCommands.export({ format, filename, limit });
+  },
+
+  // Account settings submenu
+  async showAccountMenu() {
+    const user = authCommands.getCurrentUser();
+    if (!user) {
+      display.error('Please login first');
+      return;
+    }
+
+    const { accountAction } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'accountAction',
+        message: 'Account Settings:',
+        choices: [
+          { name: '👤 Show User Info', value: 'info' },
+          { name: '🔑 Change Password', value: 'password' },
+          { name: '🚪 Logout', value: 'logout' },
+          { name: '⬅️ Back to Main Menu', value: 'back' }
+        ]
+      }
+    ]);
+
+    if (accountAction === 'back') return;
+
+    switch (accountAction) {
+      case 'info':
+        console.log(chalk.cyan.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+        console.log(chalk.white.bold(`👤 Username: ${user.username}`));
+        console.log(chalk.white.bold(`📧 Email: ${user.email || 'Not available'}`));
+        
+        // Safely handle funds display
+        if (user.funds !== undefined && user.funds !== null) {
+          console.log(chalk.green.bold(`💰 Available Funds: £${user.funds.toFixed(2)}`));
+        } else {
+          console.log(chalk.yellow.bold(`💰 Available Funds: £0.00 (not available)`));
+        }
+        
+        if (user.created_at) {
+          console.log(chalk.gray(`📅 Member since: ${new Date(user.created_at).toLocaleDateString()}`));
+        }
+        console.log(chalk.cyan.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+        break;
+      case 'password':
+        display.info('Password change functionality coming soon...');
+        break;
+      case 'logout':
+        await authCommands.logout();
+        break;
+    }
   }
 };
 
